@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Onda · Cotações</title>
+<style>
+:root{--ink:#10222e;--mut:#6b7c88;--line:#dde4e9;--bg:#f4f7f9;--acc:#0b5c7a;--acc2:#0e7ea8;--ok:#1b8a4b;--warn:#c98a00;--bad:#c0392b}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+header{background:var(--acc);color:#fff;display:flex;gap:4px;align-items:center;padding:0 16px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+header b{font-size:17px;margin-right:16px;padding:12px 0;letter-spacing:.5px}
+header button{background:none;border:0;color:#cfe8f2;padding:14px 12px;cursor:pointer;font:inherit;border-bottom:3px solid transparent}
+header button.on,header button:hover{color:#fff;border-bottom-color:#fff}
+main{max-width:1100px;margin:0 auto;padding:18px 14px 60px}
+h2{margin:0 0 14px;font-size:20px} h3{margin:18px 0 8px;font-size:15px}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px}
+.kpi small{color:var(--mut);display:block}.kpi b{font-size:21px}
+label{display:block;font-size:12px;color:var(--mut);margin-bottom:2px}
+input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;background:#fff}
+textarea{min-height:64px}
+.row{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:10px}
+button.b{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:8px 14px;cursor:pointer;font:inherit}
+button.b.sec{background:#e6eef2;color:var(--ink)} button.b.red{background:var(--bad)} button.b.sm{padding:4px 9px;font-size:12px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;background:#fff}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;white-space:nowrap}
+th{font-size:12px;color:var(--mut);font-weight:600;background:#fafcfd}
+td.n,th.n{text-align:right}
+tr.click:hover{background:#f1f7fa;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;color:#fff}
+.Rascunho{background:#8a98a3}.Enviada{background:var(--warn)}.Aprovada{background:var(--ok)}.Recusada{background:var(--bad)}
+.pos{color:var(--ok)}.neg{color:var(--bad)}
+.alert{background:#fff4e0;border:1px solid #f0c987;border-radius:8px;padding:9px 12px;margin-bottom:12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.bar .sp{flex:1}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .h{font-size:12px;color:var(--mut);text-align:center}
+.cal .d{min-height:62px;border-radius:6px;border:1px solid var(--line);background:#fff;padding:3px 5px;font-size:12px;overflow:hidden}
+.cal .d.g{background:#e3f5ea}.cal .d.y{background:#fff1cc}.cal .d.r{background:#f8d5d0}
+.chip{display:block;font-size:11px;color:#fff;border-radius:4px;padding:1px 4px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.mut{color:var(--mut)}
+#print{display:none}
+@media print{
+ body>*:not(#print){display:none!important}
+ #print{display:block;padding:0;color:#000;background:#fff}
+ @page{margin:14mm}
+}
+.pq h1{margin:0;font-size:20px;color:var(--acc)} .pq table td,.pq table th{white-space:normal}
+.pq .inc td{color:#555;font-size:12px;padding:2px 8px 2px 24px;border:0}
+.pq .kit td{font-weight:600;background:#f3f7f9}
+.pq .tot{margin-left:auto;width:300px;margin-top:10px}
+.pq .tot div{display:flex;justify-content:space-between;padding:3px 0}
+.pq .tot .t{font-weight:700;font-size:16px;border-top:2px solid var(--acc);margin-top:4px;padding-top:6px}
+</style>
+</head>
+<body>
+<header id="nav"></header>
+<main id="app"></main>
+<div id="print"></div>
+
+<script>
+/* ===================== dados ===================== */
+const KEY='onda-cotacoes-v1';
+const uid=()=>Math.random().toString(36).slice(2,9);
+function seed(){
+  const cam={id:uid(),nome:'Câmera ARRI ALEXA Mini',cat:'Câmeras',diaria:3200,qtd:1,tipo:'Próprio',fornecedor:'',custoDia:0,repasse:0,kit:false,comp:[],extras:'',ativo:true};
+  const tx={id:uid(),nome:'TX Bolt 6 LT 750 Teradek',cat:'Transmissão',diaria:350,qtd:1,tipo:'Próprio',fornecedor:'',custoDia:0,repasse:0,kit:false,comp:[],extras:'',ativo:true};
+  const mon={id:uid(),nome:'Monitor SmallHD Ultra 7 Bolt 6 RX',cat:'Monitores',diaria:1000,qtd:2,tipo:'Sublocado',fornecedor:'Fornecedor (exemplo)',custoDia:600,repasse:0,kit:false,comp:[],extras:'',ativo:true};
+  const kit={id:uid(),nome:'Kit ALEXA Mini ARRI',cat:'Kits',diaria:3200,qtd:1,tipo:'Próprio',fornecedor:'',custoDia:0,repasse:0,kit:true,comp:[{id:cam.id,qtd:1}],extras:'Viewfinder\nCabos EVF / EXT / Timecode\nCartões CFast\nOmbreira, bridge plate, dovetail',ativo:true};
+  return {empresa:{nome:'Onda Camera Dept',cnpj:'',end:'',tel:'',email:'',condicoes:'Valores por diária de 24h. O equipamento deve ser devolvido nas mesmas condições da retirada. Danos e extravios são de responsabilidade do locatário.',validade:'Cotação válida por 7 dias.'},
+    equip:[cam,tx,mon,kit],cot:[],desp:[],seq:0};
+}
+let db=(()=>{try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.equip)return d}catch(e){}return seed()})();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}};
+
+/* ===================== utilitários ===================== */
+const brl=n=>(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const E=id=>db.equip.find(e=>e.id===id);
+const C=id=>db.cot.find(c=>c.id===id);
+const pad=n=>String(n).padStart(2,'0');
+const fmtDT=s=>{const d=new Date(s);return isNaN(d)?'—':`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`};
+const fmtD=s=>{const d=new Date(s);return isNaN(d)?'—':`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`};
+const toLocal=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const hoje=()=>toLocal(new Date()).slice(0,10);
+
+/* diárias: a cada 24h do período conta 1 (mínimo 1); ajustável por item */
+function autoDias(c){const a=new Date(c.de),b=new Date(c.ate);const h=(b-a)/864e5;return isNaN(h)?1:Math.max(1,Math.ceil(h-1e-9))}
+const diasIt=(c,it)=>it.dias==null?autoDias(c):it.dias;
+function tot(c){
+  const sub=c.itens.reduce((s,it)=>s+it.qtd*diasIt(c,it)*it.preco,0);
+  const desc=sub*(c.desc||0)/100, base=sub-desc, imp=base*(c.imp||0)/100;
+  return {sub,desc,base,imp,total:base+imp};
+}
+const pagoDe=c=>(c.pags||[]).reduce((s,p)=>s+(+p.valor||0),0);
+
+/* unidades de um equipamento usadas por um item (kit ocupa os componentes) */
+function unitsOf(it,eid){
+  const e=E(it.eid);if(!e)return 0;
+  if(e.kit){const k=e.comp.find(x=>x.id===eid);return k?k.qtd*it.qtd:0}
+  return it.eid===eid?it.qtd:0;
+}
+function usage(eid,d0,d1,sts,ex){
+  let u=0;
+  for(const c of db.cot){
+    if(c.id===ex||!sts.includes(c.status))continue;
+    const a=new Date(c.de),b=new Date(c.ate);if(isNaN(a)||isNaN(b))continue;
+    if(a<d1&&b>d0)for(const it of c.itens)u+=unitsOf(it,eid);
+  }
+  return u;
+}
+function conflitos(c){
+  const a=new Date(c.de),b=new Date(c.ate);if(isNaN(a)||isNaN(b))return[];
+  const ids=new Set();c.itens.forEach(it=>{const e=E(it.eid);if(!e)return;(e.kit?e.comp.map(x=>x.id):[e.id]).forEach(i=>ids.add(i))});
+  const out=[];
+  ids.forEach(id=>{const e=E(id);if(!e||e.tipo==='Sublocado')return;
+    const mine=c.itens.reduce((s,it)=>s+unitsOf(it,id),0);
+    const used=usage(id,a,b,['Aprovada'],c.id);
+    if(used+mine>e.qtd)out.push(`${e.nome}: ${used} já reservada(s) em cotações aprovadas + ${mine} nesta, mas só há ${e.qtd} em estoque.`);
+  });
+  return out;
+}
+
+/* ===================== lucro por equipamento ===================== */
+function lucro(mes){
+  const R={};const row=id=>R[id]??={eid:id,rec:0,receb:0,sub:0,rep:0,desp:0,n:0,dias:0};
+  for(const c of db.cot){
+    if(c.status!=='Aprovada')continue;if(mes&&!(c.de||'').startsWith(mes))continue;
+    const t=tot(c),ratio=t.total?Math.min(1,pagoDe(c)/t.total):0,k=1-(c.desc||0)/100;
+    for(const it of c.itens){
+      const e=E(it.eid);if(!e)continue;const d=diasIt(c,it),val=it.qtd*d*it.preco*k;
+      let parts=e.kit?e.comp.map(x=>({id:x.id,u:x.qtd*it.qtd,w:x.qtd*(E(x.id)?.diaria||0)})):[{id:e.id,u:it.qtd,w:1}];
+      if(!parts.length)parts=[{id:e.id,u:0,w:1}];
+      let W=parts.reduce((s,p)=>s+p.w,0);if(!W){parts=parts.map(p=>({...p,w:1}));W=parts.length}
+      for(const p of parts){
+        const pe=E(p.id);if(!pe)continue;const share=val*p.w/W,r=row(p.id);
+        r.rec+=share;r.receb+=share*ratio;r.n++;r.dias+=d*p.u;
+        if(pe.tipo==='Sublocado')r.sub+=(pe.custoDia||0)*p.u*d;
+        if(pe.tipo==='Sócio')r.rep+=share*(pe.repasse||0)/100;
+      }
+    }
+  }
+  let gerais=0;
+  for(const x of db.desp){if(mes&&!(x.data||'').startsWith(mes))continue;if(x.eid&&E(x.eid))row(x.eid).desp+=+x.valor||0;else gerais+=+x.valor||0}
+  db.equip.filter(e=>!e.kit&&e.ativo).forEach(e=>row(e.id));
+  const rows=Object.values(R).map(r=>({...r,lucro:r.rec-r.sub-r.rep-r.desp})).sort((a,b)=>b.lucro-a.lucro);
+  return {rows,gerais};
+}
+
+/* ===================== estado / navegação ===================== */
+let view='home',ctx={},ag={y:new Date().getFullYear(),m:new Date().getMonth(),eid:'*'};
+const go=(v,c={})=>{view=v;ctx=c;render();window.scrollTo(0,0)};
+const NAV=[['home','Resumo'],['cot','Cotações'],['agenda','Agenda'],['lucro','Lucro por equipamento'],['equip','Equipamentos'],['desp','Despesas'],['cfg','Configurações']];
+function nav(){document.getElementById('nav').innerHTML='<b>ONDA</b>'+NAV.map(([k,l])=>`<button class="${(view===k||(view==='cotEdit'&&k==='cot'))?'on':''}" onclick="go('${k}')">${l}</button>`).join('')}
+function render(){nav();const f={home:vHome,cot:vCot,cotEdit:vCotEdit,agenda:vAgenda,lucro:vLucro,equip:vEquip,desp:vDesp,cfg:vCfg}[view];document.getElementById('app').innerHTML=f();}
+
+/* setter genérico para inputs */
+function val(el){return el.type==='checkbox'?el.checked:el.type==='number'?(el.value===''?null:+el.value):el.value}
+function S(coll,id,key,el,rer=true){const o=db[coll].find(x=>x.id===id);if(!o)return;o[key]=val(el)??0;save();if(rer)render()}
+function SE(cid,key,el){const c=C(cid);c[key]=val(el);save();render()}
+
+/* ===================== RESUMO ===================== */
+function vHome(){
+  const mes=hoje().slice(0,7);
+  const ap=db.cot.filter(c=>c.status==='Aprovada');
+  const apMes=ap.filter(c=>(c.de||'').startsWith(mes));
+  const fat=apMes.reduce((s,c)=>s+tot(c).total,0);
+  const aRec=ap.reduce((s,c)=>s+Math.max(0,tot(c).total-pagoDe(c)),0);
+  const env=db.cot.filter(c=>c.status==='Enviada').length;
+  const prox=ap.filter(c=>new Date(c.ate)>=new Date()).sort((a,b)=>new Date(a.de)-new Date(b.de)).slice(0,6);
+  const L=lucro(mes),lt=L.rows.reduce((s,r)=>s+r.lucro,0)-L.gerais;
+  return `<h2>Resumo</h2>
+  <div class="grid">
+   <div class="kpi"><small>Cotações em confirmação</small><b>${env}</b></div>
+   <div class="kpi"><small>Aprovadas no mês</small><b>${apMes.length}</b></div>
+   <div class="kpi"><small>Faturado no mês</small><b>${brl(fat)}</b></div>
+   <div class="kpi"><small>A receber (todas aprovadas)</small><b>${brl(aRec)}</b></div>
+   <div class="kpi"><small>Lucro do mês</small><b class="${lt>=0?'pos':'neg'}">${brl(lt)}</b></div>
+  </div>
+  <h3>Próximas locações aprovadas</h3>
+  <div class="card tw">${prox.length?`<table><tr><th>Cliente / projeto</th><th>Retirada</th><th>Devolução</th><th class="n">Total</th></tr>${prox.map(c=>`<tr class="click" onclick="go('cotEdit',{id:'${c.id}'})"><td>${esc(c.cliente)} <span class="mut">${esc(c.projeto)}</span></td><td>${fmtDT(c.de)}</td><td>${fmtDT(c.ate)}</td><td class="n">${brl(tot(c).total)}</td></tr>`).join('')}</table>`:'<span class="mut">Nenhuma locação aprovada pela frente.</span>'}</div>
+  <div class="bar"><button class="b" onclick="novaCot()">+ Nova cotação</button></div>`;
+}
+
+/* ===================== COTAÇÕES ===================== */
+let filSt='';
+function novaCot(){
+  db.seq++;const d=new Date();d.setHours(8,0,0,0);const e=new Date(d);e.setHours(16);
+  const c={id:uid(),num:`${d.getFullYear()}-${String(db.seq).padStart(3,'0')}`,cliente:'',projeto:'',de:toLocal(d),ate:toLocal(e),status:'Rascunho',desc:0,imp:0,itens:[],pags:[],obs:''};
+  db.cot.unshift(c);save();go('cotEdit',{id:c.id});
+}
+function dupCot(id){const o=C(id);db.seq++;const c=JSON.parse(JSON.stringify(o));c.id=uid();c.num=`${new Date().getFullYear()}-${String(db.seq).padStart(3,'0')}`;c.status='Rascunho';c.pags=[];db.cot.unshift(c);save();go('cotEdit',{id:c.id})}
+function delCot(id){if(confirm('Excluir esta cotação?')){db.cot=db.cot.filter(c=>c.id!==id);save();go('cot')}}
+function vCot(){
+  const l=db.cot.filter(c=>!filSt||c.status===filSt);
+  return `<h2>Cotações</h2>
+  <div class="bar"><button class="b" onclick="novaCot()">+ Nova cotação</button>
+   <select style="width:auto" onchange="filSt=this.value;render()"><option value="">Todos os status</option>${['Rascunho','Enviada','Aprovada','Recusada'].map(s=>`<option ${filSt===s?'selected':''}>${s}</option>`).join('')}</select></div>
+  <div class="card tw"><table><tr><th>Nº</th><th>Cliente / projeto</th><th>Período</th><th>Status</th><th class="n">Total</th><th class="n">Pago</th></tr>
+  ${l.map(c=>`<tr class="click" onclick="go('cotEdit',{id:'${c.id}'})"><td>${esc(c.num)}</td><td>${esc(c.cliente||'(sem cliente)')} <span class="mut">${esc(c.projeto)}</span></td><td>${fmtD(c.de)} → ${fmtD(c.ate)}</td><td><span class="tag ${c.status}">${c.status}</span></td><td class="n">${brl(tot(c).total)}</td><td class="n">${brl(pagoDe(c))}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">Nenhuma cotação ainda.</td></tr>'}
+  </table></div>`;
+}
+
+function vCotEdit(){
+  const c=C(ctx.id);if(!c){return'<p>Cotação não encontrada.</p>'}
+  const t=tot(c),conf=c.status==='Aprovada'||c.status==='Enviada'?conflitos(c):[];
+  const opts=db.equip.filter(e=>e.ativo).map(e=>`<option value="${e.id}">${esc(e.nome)} — ${brl(e.diaria)}</option>`).join('');
+  return `<div class="bar"><button class="b sec sm" onclick="go('cot')">← Voltar</button><h2 style="margin:0">Cotação ${esc(c.num)}</h2><span class="sp"></span>
+   <button class="b" onclick="imprimir('${c.id}')">Gerar PDF / imprimir</button>
+   <button class="b sec" onclick="dupCot('${c.id}')">Duplicar</button><button class="b red" onclick="delCot('${c.id}')">Excluir</button></div>
+  ${conf.length?`<div class="alert"><b>Atenção — conflito de agenda:</b><br>${conf.map(esc).join('<br>')}</div>`:''}
+  <div class="card">
+   <div class="row">
+    <div><label>Cliente</label><input value="${esc(c.cliente)}" onchange="SE('${c.id}','cliente',this)"></div>
+    <div><label>Projeto</label><input value="${esc(c.projeto)}" onchange="SE('${c.id}','projeto',this)"></div>
+    <div><label>Retirada</label><input type="datetime-local" value="${esc(c.de)}" onchange="SE('${c.id}','de',this)"></div>
+    <div><label>Devolução</label><input type="datetime-local" value="${esc(c.ate)}" onchange="SE('${c.id}','ate',this)"></div>
+    <div><label>Status</label><select onchange="SE('${c.id}','status',this)">${['Rascunho','Enviada','Aprovada','Recusada'].map(s=>`<option ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+   </div>
+   <div class="mut">Diárias do período: <b>${autoDias(c)}</b> (a cada 24h conta 1; você pode ajustar por item).</div>
+  </div>
+  <div class="card tw"><h3 style="margin-top:0">Itens</h3>
+   <table><tr><th>Equipamento</th><th style="width:70px">Qtd</th><th style="width:80px">Diárias</th><th style="width:120px">Preço/diária</th><th class="n">Total</th><th></th></tr>
+   ${c.itens.map((it,i)=>{const e=E(it.eid);return `<tr><td>${esc(e?e.nome:'(removido)')}${e&&e.kit?' <span class="mut">(kit)</span>':''}</td>
+     <td><input type="number" min="1" value="${it.qtd}" onchange="SI('${c.id}',${i},'qtd',this)"></td>
+     <td><input type="number" min="1" value="${diasIt(c,it)}" onchange="SI('${c.id}',${i},'dias',this)"></td>
+     <td><input type="number" step="0.01" value="${it.preco}" onchange="SI('${c.id}',${i},'preco',this)"></td>
+     <td class="n">${brl(it.qtd*diasIt(c,it)*it.preco)}</td><td><button class="b red sm" onclick="rmIt('${c.id}',${i})">✕</button></td></tr>`}).join('')||'<tr><td colspan="6" class="mut">Adicione equipamentos abaixo.</td></tr>'}
+   </table>
+   <div class="bar" style="margin-top:10px"><select id="addEq" style="max-width:420px">${opts}</select><button class="b" onclick="addIt('${c.id}')">+ Adicionar item</button></div>
+  </div>
+  <div class="grid">
+   <div class="card"><h3 style="margin-top:0">Valores</h3>
+    <div class="row"><div><label>Desconto (%)</label><input type="number" step="0.01" value="${c.desc||0}" onchange="SE('${c.id}','desc',this)"></div>
+    <div><label>Imposto (%) sobre o valor com desconto</label><input type="number" step="0.01" value="${c.imp||0}" onchange="SE('${c.id}','imp',this)"></div></div>
+    <div>Subtotal: <b>${brl(t.sub)}</b></div><div>Desconto: <b>-${brl(t.desc)}</b></div><div>Imposto: <b>${brl(t.imp)}</b></div>
+    <div style="font-size:18px;margin-top:6px">Total: <b>${brl(t.total)}</b></div></div>
+   <div class="card"><h3 style="margin-top:0">Pagamentos recebidos</h3>
+    ${(c.pags||[]).map((p,i)=>`<div class="bar" style="margin-bottom:6px"><span>${fmtD(p.data)}</span><b>${brl(p.valor)}</b><span class="sp"></span><button class="b red sm" onclick="rmPag('${c.id}',${i})">✕</button></div>`).join('')||'<div class="mut">Nenhum pagamento registrado.</div>'}
+    <div class="row" style="margin-top:8px"><div><label>Data</label><input type="date" id="pgD" value="${hoje()}"></div><div><label>Valor</label><input type="number" step="0.01" id="pgV"></div></div>
+    <button class="b sm" onclick="addPag('${c.id}')">+ Registrar pagamento</button>
+    <div style="margin-top:8px">Falta receber: <b>${brl(Math.max(0,t.total-pagoDe(c)))}</b></div></div>
+  </div>
+  <div class="card"><label>Observações (aparecem no PDF)</label><textarea onchange="SE('${c.id}','obs',this)">${esc(c.obs)}</textarea></div>`;
+}
+function SI(cid,i,key,el){const it=C(cid).itens[i];it[key]=val(el);if(key==='dias'&&it.dias==null)it.dias=null;if(key==='qtd'&&!it.qtd)it.qtd=1;save();render()}
+function rmIt(cid,i){C(cid).itens.splice(i,1);save();render()}
+function addIt(cid){const id=document.getElementById('addEq').value;const e=E(id);if(!e)return;C(cid).itens.push({eid:id,qtd:1,dias:null,preco:e.diaria});save();render()}
+function addPag(cid){const v=+document.getElementById('pgV').value;if(!v)return;(C(cid).pags=C(cid).pags||[]).push({data:document.getElementById('pgD').value,valor:v});save();render()}
+function rmPag(cid,i){C(cid).pags.splice(i,1);save();render()}
+
+/* ===================== PDF (impressão) ===================== */
+function imprimir(id){
+  const c=C(id),t=tot(c),em=db.empresa;
+  const rows=c.itens.map(it=>{
+    const e=E(it.eid);if(!e)return'';const d=diasIt(c,it);
+    let h=`<tr class="${e.kit?'kit':''}"><td>${it.qtd} x ${esc(e.nome)}</td><td>${d} dia${d>1?'s':''}</td><td style="text-align:right">${brl(it.preco)}</td><td style="text-align:right">${brl(it.qtd*d*it.preco)}</td></tr>`;
+    if(e.kit){
+      e.comp.forEach(k=>{const ce=E(k.id);if(ce)h+=`<tr class="inc"><td colspan="3">${k.qtd*it.qtd} x ${esc(ce.nome)}</td><td style="text-align:right">INCLUSO</td></tr>`});
+      (e.extras||'').split('\n').filter(x=>x.trim()).forEach(x=>h+=`<tr class="inc"><td colspan="3">${it.qtd} x ${esc(x.trim())}</td><td style="text-align:right">INCLUSO</td></tr>`);
+    }
+    return h;}).join('');
+  document.getElementById('print').innerHTML=`<div class="pq">
+   <div style="display:flex;justify-content:space-between;gap:20px">
+    <div><h1>${esc(em.nome)}</h1><div>${esc(em.end)}</div><div>${esc(em.tel)} ${esc(em.email)}</div>${em.cnpj?`<div>CNPJ: ${esc(em.cnpj)}</div>`:''}</div>
+    <div style="text-align:right"><b>Cotação #${esc(c.num)}</b><div>Data ${fmtD(new Date())}</div>${c.projeto?`<div>Projeto: ${esc(c.projeto)}</div>`:''}<div>De ${fmtDT(c.de)}</div><div>Até ${fmtDT(c.ate)}</div></div></div>
+   <div style="margin:14px 0"><b>Cliente:</b> ${esc(c.cliente)}</div>
+   <table><tr><th>Item</th><th>Período</th><th style="text-align:right">Preço</th><th style="text-align:right">Total</th></tr>${rows}</table>
+   <div class="tot"><div><span>Subtotal</span><span>${brl(t.sub)}</span></div>
+    ${c.desc?`<div><span>Desconto ${c.desc} %</span><span>-${brl(t.desc)}</span></div>`:''}
+    ${c.imp?`<div><span>Imposto ${c.imp} %</span><span>${brl(t.imp)}</span></div>`:''}
+    <div class="t"><span>Total</span><span>${brl(t.total)}</span></div></div>
+   ${c.obs?`<p><b>Observações:</b><br>${esc(c.obs).replace(/\n/g,'<br>')}</p>`:''}
+   <p style="font-size:12px;color:#444;margin-top:22px">${esc(em.condicoes)}<br>${esc(em.validade)}</p></div>`;
+  window.print();
+}
+
+/* ===================== AGENDA ===================== */
+function vAgenda(){
+  const {y,m,eid}=ag,first=new Date(y,m,1),n=new Date(y,m+1,0).getDate(),off=first.getDay();
+  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const e=E(eid);let cells='';
+  for(let i=0;i<off;i++)cells+='<div></div>';
+  for(let d=1;d<=n;d++){
+    const d0=new Date(y,m,d),d1=new Date(y,m,d+1);let cls='',inner='';
+    if(eid==='*'){
+      db.cot.filter(c=>['Aprovada','Enviada'].includes(c.status)&&new Date(c.de)<d1&&new Date(c.ate)>d0).forEach(c=>inner+=`<span class="chip" style="background:${c.status==='Aprovada'?'var(--ok)':'var(--warn)'}" onclick="go('cotEdit',{id:'${c.id}'})">${esc(c.cliente||c.num)}</span>`);
+    }else if(e){
+      if(e.tipo==='Sublocado'){cls='g'}else{
+        const ap=usage(eid,d0,d1,['Aprovada']),en=usage(eid,d0,d1,['Enviada']);
+        cls=ap>=e.qtd?'r':(ap+en>0?'y':'g');inner=ap+en?`<span class="mut">${ap} aprov. / ${en} env.</span>`:'';
+      }
+    }
+    cells+=`<div class="d ${cls}"><b>${d}</b>${inner?'<br>'+inner:''}</div>`;
+  }
+  return `<h2>Agenda</h2>
+  <div class="bar"><button class="b sec sm" onclick="agM(-1)">◀</button><b style="min-width:150px;text-align:center">${meses[m]} ${y}</b><button class="b sec sm" onclick="agM(1)">▶</button>
+   <select style="width:auto;max-width:360px" onchange="ag.eid=this.value;render()"><option value="*" ${eid==='*'?'selected':''}>Todas as locações</option>${db.equip.filter(x=>!x.kit&&x.ativo).map(x=>`<option value="${x.id}" ${eid===x.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></div>
+  <div class="card"><div class="cal">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(x=>`<div class="h">${x}</div>`).join('')}${cells}</div>
+  <p class="mut" style="margin-bottom:0">${eid==='*'?'Verde = aprovada · Amarelo = enviada (em confirmação).':'Verde = disponível · Amarelo = cotação enviada (em confirmação) · Vermelho = todas as unidades em cotações aprovadas. Rascunho e recusada não ocupam. Equipamento sublocado não controla estoque.'}</p></div>`;
+}
+function agM(d){ag.m+=d;if(ag.m<0){ag.m=11;ag.y--}if(ag.m>11){ag.m=0;ag.y++}render()}
+
+/* ===================== LUCRO ===================== */
+let mesF='';
+function vLucro(){
+  const L=lucro(mesF),T=L.rows.reduce((a,r)=>{for(const k of['rec','receb','sub','rep','desp','lucro'])a[k]+=r[k];return a},{rec:0,receb:0,sub:0,rep:0,desp:0,lucro:0});
+  const res=T.lucro-L.gerais;
+  return `<h2>Lucro por equipamento</h2>
+  <div class="bar"><div><label>Mês (pela data de retirada)</label><input type="month" value="${mesF}" onchange="mesF=this.value;render()" style="width:auto"></div>
+   <button class="b sec sm" style="align-self:flex-end" onclick="mesF='';render()">Todo o período</button></div>
+  <div class="card tw"><table><tr><th>Equipamento</th><th>Tipo</th><th class="n">Locações</th><th class="n">Diárias</th><th class="n">Receita</th><th class="n">Recebido</th><th class="n">Sublocação</th><th class="n">Repasse sócio</th><th class="n">Despesas</th><th class="n">Lucro</th></tr>
+  ${L.rows.map(r=>{const e=E(r.eid);return `<tr><td>${esc(e.nome)}</td><td>${e.tipo}</td><td class="n">${r.n}</td><td class="n">${r.dias}</td><td class="n">${brl(r.rec)}</td><td class="n">${brl(r.receb)}</td><td class="n">${brl(r.sub)}</td><td class="n">${brl(r.rep)}</td><td class="n">${brl(r.desp)}</td><td class="n ${r.lucro>=0?'pos':'neg'}"><b>${brl(r.lucro)}</b></td></tr>`}).join('')}
+  <tr><th>Total</th><th></th><th></th><th></th><th class="n">${brl(T.rec)}</th><th class="n">${brl(T.receb)}</th><th class="n">${brl(T.sub)}</th><th class="n">${brl(T.rep)}</th><th class="n">${brl(T.desp)}</th><th class="n">${brl(T.lucro)}</th></tr></table></div>
+  <div class="grid"><div class="kpi"><small>Despesas gerais (sem equipamento)</small><b>${brl(L.gerais)}</b></div>
+   <div class="kpi"><small>Resultado da empresa</small><b class="${res>=0?'pos':'neg'}">${brl(res)}</b></div></div>
+  <p class="mut">Só entram cotações <b>Aprovadas</b>. Receita = valor dos itens já com o desconto (imposto fica de fora). Em kits, a receita é dividida entre os componentes pela diária de cada um no catálogo. Sublocação = custo/diária × unidades × diárias. Lucro = receita − sublocação − repasse ao sócio − despesas do equipamento.</p>`;
+}
+
+/* ===================== EQUIPAMENTOS ===================== */
+function novoEq(){const e={id:uid(),nome:'Novo equipamento',cat:'',diaria:0,qtd:1,tipo:'Próprio',fornecedor:'',custoDia:0,repasse:0,kit:false,comp:[],extras:'',ativo:true};db.equip.push(e);save();ctx={id:e.id};render()}
+function vEquip(){
+  const sel=ctx.id&&E(ctx.id)?E(ctx.id):null;
+  const list=`<div class="card tw"><table><tr><th>Equipamento</th><th>Categoria</th><th>Tipo</th><th class="n">Qtd</th><th class="n">Diária</th><th class="n">Custo/diária</th><th></th></tr>
+  ${db.equip.map(e=>`<tr class="click" onclick="go('equip',{id:'${e.id}'})" style="${e.ativo?'':'opacity:.5'}"><td>${esc(e.nome)}${e.kit?' <span class="mut">(kit)</span>':''}</td><td>${esc(e.cat)}</td><td>${e.tipo}${e.tipo==='Sublocado'&&e.fornecedor?` <span class="mut">· ${esc(e.fornecedor)}</span>`:''}${e.tipo==='Sócio'?` <span class="mut">· ${e.repasse}%</span>`:''}</td><td class="n">${e.qtd}</td><td class="n">${brl(e.diaria)}</td><td class="n">${e.tipo==='Sublocado'?brl(e.custoDia):'—'}</td><td>${e.ativo?'':'inativo'}</td></tr>`).join('')}</table></div>`;
+  let form='';
+  if(sel){const e=sel,id=e.id;
+    form=`<div class="card"><h3 style="margin-top:0">Editar equipamento</h3>
+    <div class="row">
+     <div><label>Nome</label><input value="${esc(e.nome)}" onchange="S('equip','${id}','nome',this)"></div>
+     <div><label>Categoria</label><input value="${esc(e.cat)}" onchange="S('equip','${id}','cat',this)"></div>
+     <div><label>Diária (R$)</label><input type="number" step="0.01" value="${e.diaria}" onchange="S('equip','${id}','diaria',this)"></div>
+     <div><label>Quantidade em estoque</label><input type="number" min="0" value="${e.qtd}" onchange="S('equip','${id}','qtd',this)"></div>
+     <div><label>Tipo</label><select onchange="S('equip','${id}','tipo',this)">${['Próprio','Sublocado','Sócio'].map(t=>`<option ${e.tipo===t?'selected':''}>${t}</option>`).join('')}</select></div>
+    </div>
+    ${e.tipo==='Sublocado'?`<div class="row"><div><label>Fornecedor</label><input value="${esc(e.fornecedor)}" onchange="S('equip','${id}','fornecedor',this)"></div><div><label>Custo da sublocação por diária (R$)</label><input type="number" step="0.01" value="${e.custoDia}" onchange="S('equip','${id}','custoDia',this)"></div></div>`:''}
+    ${e.tipo==='Sócio'?`<div class="row"><div><label>Dono / sócio</label><input value="${esc(e.fornecedor)}" onchange="S('equip','${id}','fornecedor',this)"></div><div><label>Repasse ao dono (% da receita)</label><input type="number" step="0.01" value="${e.repasse}" onchange="S('equip','${id}','repasse',this)"></div></div>`:''}
+    <div class="row"><div><label><input type="checkbox" style="width:auto" ${e.kit?'checked':''} onchange="S('equip','${id}','kit',this)"> É um kit (preço próprio; os componentes ocupam a agenda)</label></div>
+     <div><label><input type="checkbox" style="width:auto" ${e.ativo?'checked':''} onchange="S('equip','${id}','ativo',this)"> Ativo (aparece nas cotações)</label></div></div>
+    ${e.kit?`<h3>Componentes do kit</h3>
+      ${e.comp.map((k,i)=>`<div class="bar" style="margin-bottom:4px"><span>${k.qtd} x ${esc(E(k.id)?.nome||'?')}</span><button class="b red sm" onclick="rmComp('${id}',${i})">✕</button></div>`).join('')||'<div class="mut">Sem componentes rastreados.</div>'}
+      <div class="bar"><select id="kc" style="max-width:340px">${db.equip.filter(x=>!x.kit&&x.id!==id).map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join('')}</select><input id="kq" type="number" min="1" value="1" style="width:80px"><button class="b sm" onclick="addComp('${id}')">+ Componente</button></div>
+      <label>Itens extras que saem no PDF como "INCLUSO" (um por linha, não controlam estoque)</label><textarea onchange="S('equip','${id}','extras',this,false)">${esc(e.extras)}</textarea>`:''}
+    <div class="bar" style="margin-top:10px"><button class="b sec" onclick="go('equip')">Fechar</button><button class="b red" onclick="delEq('${id}')">Excluir</button></div></div>`;
+  }
+  return `<h2>Equipamentos</h2><div class="bar"><button class="b" onclick="novoEq()">+ Novo equipamento</button></div>${form}${list}
+  <p class="mut"><b>Próprio</b>: é da Onda. <b>Sublocado</b>: você aluga de terceiro e paga o custo por diária. <b>Sócio</b>: é de um sócio e ele recebe % da receita.</p>`;
+}
+function addComp(id){const e=E(id),c=document.getElementById('kc').value,q=+document.getElementById('kq').value||1;if(!c)return;e.comp.push({id:c,qtd:q});save();render()}
+function rmComp(id,i){E(id).comp.splice(i,1);save();render()}
+function delEq(id){
+  const usado=db.cot.some(c=>c.itens.some(it=>it.eid===id))||db.desp.some(d=>d.eid===id)||db.equip.some(e=>e.comp.some(k=>k.id===id));
+  if(usado){alert('Este equipamento já está em cotações, despesas ou kits. Desmarque "Ativo" para ele sair das novas cotações sem perder o histórico.');return}
+  if(confirm('Excluir equipamento?')){db.equip=db.equip.filter(e=>e.id!==id);save();go('equip')}
+}
+
+/* ===================== DESPESAS ===================== */
+function vDesp(){
+  const l=[...db.desp].sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  return `<h2>Despesas</h2>
+  <div class="card"><div class="row">
+   <div><label>Data</label><input type="date" id="dD" value="${hoje()}"></div>
+   <div><label>Descrição</label><input id="dT" placeholder="Ex.: manutenção, frete, bateria"></div>
+   <div><label>Valor (R$)</label><input type="number" step="0.01" id="dV"></div>
+   <div><label>Equipamento (opcional)</label><select id="dE"><option value="">Geral da empresa</option>${db.equip.filter(e=>!e.kit).map(e=>`<option value="${e.id}">${esc(e.nome)}</option>`).join('')}</select></div></div>
+   <button class="b" onclick="addDesp()">+ Lançar despesa</button></div>
+  <div class="card tw"><table><tr><th>Data</th><th>Descrição</th><th>Equipamento</th><th class="n">Valor</th><th></th></tr>
+  ${l.map(d=>`<tr><td>${fmtD(d.data)}</td><td>${esc(d.desc)}</td><td>${esc(E(d.eid)?.nome||'Geral')}</td><td class="n">${brl(d.valor)}</td><td><button class="b red sm" onclick="rmDesp('${d.id}')">✕</button></td></tr>`).join('')||'<tr><td colspan="5" class="mut">Sem despesas.</td></tr>'}</table></div>`;
+}
+function addDesp(){const v=+document.getElementById('dV').value;if(!v)return;db.desp.push({id:uid(),data:document.getElementById('dD').value,desc:document.getElementById('dT').value,valor:v,eid:document.getElementById('dE').value});save();render()}
+function rmDesp(id){db.desp=db.desp.filter(d=>d.id!==id);save();render()}
+
+/* ===================== CONFIG / BACKUP ===================== */
+function SC(k,el){db.empresa[k]=el.value;save()}
+function vCfg(){const em=db.empresa;
+  return `<h2>Configurações</h2>
+  <div class="card"><h3 style="margin-top:0">Dados da empresa (aparecem no PDF)</h3>
+   <div class="row"><div><label>Nome</label><input value="${esc(em.nome)}" onchange="SC('nome',this)"></div><div><label>CNPJ</label><input value="${esc(em.cnpj)}" onchange="SC('cnpj',this)"></div>
+   <div><label>Endereço</label><input value="${esc(em.end)}" onchange="SC('end',this)"></div><div><label>Telefone</label><input value="${esc(em.tel)}" onchange="SC('tel',this)"></div><div><label>E-mail</label><input value="${esc(em.email)}" onchange="SC('email',this)"></div></div>
+   <label>Condições gerais</label><textarea onchange="SC('condicoes',this)">${esc(em.condicoes)}</textarea>
+   <label style="margin-top:8px">Validade</label><input value="${esc(em.validade)}" onchange="SC('validade',this)"></div>
+  <div class="card"><h3 style="margin-top:0">Backup dos dados</h3>
+   <p class="mut">Os dados ficam salvos neste navegador, neste aparelho. Exporte o backup de vez em quando e para levar os dados a outro computador ou celular.</p>
+   <div class="bar"><button class="b" onclick="exportar()">Exportar backup (.json)</button>
+   <label class="b sec" style="margin:0;cursor:pointer;color:var(--ink)">Importar backup<input type="file" accept=".json" style="display:none" onchange="importar(this)"></label>
+   <button class="b red" onclick="zerar()">Apagar tudo</button></div></div>`;
+}
+function exportar(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,1)],{type:'application/json'}));a.download=`onda-backup-${hoje()}.json`;a.click()}
+function importar(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.equip||!d.cot)throw 0;if(confirm('Substituir os dados atuais pelo backup?')){db=d;save();go('home')}}catch(e){alert('Arquivo inválido.')}};r.readAsText(f)}
+function zerar(){if(confirm('Apagar TODOS os dados? Exporte um backup antes.')){db=seed();db.equip=[];save();go('home')}}
+
+render();
+</script>
+</body>
+</html>
